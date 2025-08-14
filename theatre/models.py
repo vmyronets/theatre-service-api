@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.conf import settings
 
@@ -79,3 +80,57 @@ class Reservation(models.Model):
 
     def __str__(self):
         return f"Reservation #{self.id} by {self.user}"
+
+
+class Ticket(models.Model):
+    row = models.PositiveIntegerField()
+    seat = models.PositiveIntegerField()
+    performance = models.ForeignKey(
+        Performance,
+        on_delete=models.CASCADE,
+        related_name="tickets"
+    )
+    reservation = models.ForeignKey(
+        Reservation,
+        on_delete=models.CASCADE,
+        related_name="tickets"
+    )
+
+    @staticmethod
+    def validate_ticket(row, seat, theatre_hall, error_to_raise):
+        """
+        Checks if the specified row number and seats
+        are within the valid range of the hall.
+        Raises an error if the ticket is invalid.
+        """
+        for ticket_attr_value, ticket_attr_name, theatre_hall_attr_name in [
+            (row, "row", "rows"),
+            (seat, "seat", "seats_in_row"),
+        ]:
+            max_count = getattr(theatre_hall, theatre_hall_attr_name)
+            if not (1 <= ticket_attr_value <= max_count):
+                raise error_to_raise({
+                    ticket_attr_name: (
+                        f"{ticket_attr_name.capitalize()} must be between "
+                        f"1 and {max_count}."
+                    )
+                })
+
+    def clean(self):
+        Ticket.validate_ticket(
+            self.row,
+            self.seat,
+            self.performance.theatre_hall,
+            ValidationError
+        )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    class Meta:
+        unique_together = ("performance", "row", "seat")
+        ordering = ["row", "seat"]
+
+    def __str__(self):
+        return f"{self.performance} Row {self.row}, Seat {self.seat}"
