@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 
 
 class TheatreHall(models.Model):
@@ -63,3 +64,18 @@ class Performance(models.Model):
 
     def __str__(self):
         return f"{self.play.title} {self.show_time}"
+
+
+class Reservation(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="reservations"
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Reservation #{self.id} by {self.user}"
