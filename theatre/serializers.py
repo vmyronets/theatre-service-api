@@ -36,7 +36,7 @@ class PlaySerializer(serializers.ModelSerializer):
 
 
 class PlayListSerializer(PlaySerializer):
-    genre = serializers.SlugRelatedField(
+    genres = serializers.SlugRelatedField(
         many=True,
         read_only=True,
         slug_field="name"
@@ -65,3 +65,9 @@ class PlayImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Play
         fields = ("id", "image")
+
+
+class PerformanceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Performance
+        fields = ("id", "play", "theatre_hall", "show_time")
