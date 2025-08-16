@@ -48,7 +48,7 @@ class PlayListSerializer(PlaySerializer):
     )
 
     class Meta:
-        model = Movie
+        model = Play
         fields = ("id", "title", "genres", "actors", "image")
 
 
