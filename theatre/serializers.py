@@ -50,3 +50,12 @@ class PlayListSerializer(PlaySerializer):
     class Meta:
         model = Movie
         fields = ("id", "title", "genres", "actors", "image")
+
+
+class PlayDetailSerializer(PlaySerializer):
+    genre = GenreSerializer(many=True, read_only=True)
+    actors = ActorSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Play
+        fields = ("id", "title", "description", "genre", "actors", "image")
