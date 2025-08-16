@@ -27,11 +27,15 @@ class Actor(models.Model):
     first_name = models.CharField(max_length=64)
     last_name = models.CharField(max_length=64)
 
+    @property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}"
+
     class Meta:
         ordering = ["last_name", "first_name"]
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name}"
+        return self.full_name
 
 
 class Play(models.Model):
