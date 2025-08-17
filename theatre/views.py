@@ -1,10 +1,10 @@
-from django.db.models import Count
+from django.db.models import Count, F
 from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from theatre.models import Genre, Actor, TheatreHall, Play
+from theatre.models import Genre, Actor, TheatreHall, Play, Performance
 from theatre.serializers import (
     GenreSerializer,
     ActorSerializer,
