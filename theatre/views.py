@@ -1,3 +1,4 @@
+from django.db.models import Count
 from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -12,7 +13,8 @@ from theatre.serializers import (
     PlayListSerializer,
     PlayDetailSerializer,
     PlayImageSerializer,
-
+    PerformanceSerializer,
+    PerformanceListSerializer,
 )
 
 
@@ -105,4 +107,44 @@ class PlayViewSet(
 
     def list(self, request, *args, **kwargs):
         """Get all plays."""
+        return super().list(request, *args, **kwargs)
+
+
+class PerformanceViewSet(viewsets.ModelViewSet):
+    queryset = (
+        Performance.objects.all().select_related("play", "theatre_hall")
+        .annotate(
+            tickets_available=(
+                F("theatre_hall__rows") * F("theatre_hall__seats_in_row")
+                - Count("tickets")
+            )
+        )
+    )
+    serializer_class = PerformanceSerializer
+
+    def get_queryset(self):
+        date = self.request.query_params.get("date")
+        play_id_str = self.request.query_params.get("play")
+
+        queryset = self.queryset
+
+        if date:
+            date = datetime.strptime(date, "%Y-%m-%d").date()
+            queryset = queryset.filter(show_time__date=date)
+
+        if play_id_str:
+            queryset = queryset.filter(play_id=int(play_id_str))
+
+        return queryset
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return PerformanceListSerializer
+
+        if self.action == "retrieve":
+            return PerforrmanceDetailSerializer
+
+        return PerformanceSerializer
+
+    def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
