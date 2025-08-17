@@ -1,10 +1,19 @@
+from datetime import datetime
+
 from django.db.models import Count, F
 from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from theatre.models import Genre, Actor, TheatreHall, Play, Performance
+from theatre.models import (
+    Genre,
+    Actor,
+    TheatreHall,
+    Play,
+    Performance,
+    Reservation
+)
 from theatre.serializers import (
     GenreSerializer,
     ActorSerializer,
@@ -15,6 +24,8 @@ from theatre.serializers import (
     PlayImageSerializer,
     PerformanceSerializer,
     PerformanceListSerializer,
+    PerformanceDetailSerializer,
+    ReservationSerializer,
 )
 
 
@@ -115,8 +126,8 @@ class PerformanceViewSet(viewsets.ModelViewSet):
         Performance.objects.all().select_related("play", "theatre_hall")
         .annotate(
             tickets_available=(
-                F("theatre_hall__rows") * F("theatre_hall__seats_in_row")
-                - Count("tickets")
+                    F("theatre_hall__rows") * F("theatre_hall__seats_in_row")
+                    - Count("tickets")
             )
         )
     )
@@ -142,9 +153,35 @@ class PerformanceViewSet(viewsets.ModelViewSet):
             return PerformanceListSerializer
 
         if self.action == "retrieve":
-            return PerforrmanceDetailSerializer
+            return PerformanceDetailSerializer
 
         return PerformanceSerializer
 
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
+
+
+class ReservationViewSet(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    GenericViewSet
+):
+    queryset = Performance.objects.prefetch_related(
+        "tickets__performance__play",
+        "tickets__performance__theatre_hall"
+    )
+    serializer_class = ReservationSerializer
+
+    def get_queryset(self):
+        return Reservation.objects.filter(
+            user=self.request.user
+        ).prefetch_related()
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return PerformanceListSerializer
+
+        return ReservationSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
