@@ -93,7 +93,7 @@ class Reservation(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"Reservation #{self.id} by {self.user}"
+        return str(self.created_at)
 
 
 class Ticket(models.Model):
