@@ -97,3 +97,20 @@ class PerformanceListSerializer(PerformanceSerializer):
             "theatre_hall_capacity",
             "tickets_available"
         )
+
+
+class TicketSerializer(serializers.ModelSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs=attrs)
+        from rest_framework.exceptions import ValidationError
+        Ticket.validate_ticket(
+            attrs["row"],
+            attrs["seat"],
+            attrs["performance"].theatre_hall,
+            ValidationError
+        )
+        return data
+
+    class Meta:
+        model = Ticket
+        fields = ("id", "row", "seat", "performance")
