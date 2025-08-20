@@ -9,7 +9,7 @@ from theatre.models import (
     Play,
     Reservation,
     TheatreHall,
-    Ticket
+    Ticket,
 )
 
 
@@ -118,7 +118,7 @@ class TicketSerializer(serializers.ModelSerializer):
 
 
 class TicketListSerializer(TicketSerializer):
-    performance = PerformanceListSerializer(many=True, read_only=True)
+    performance = PerformanceListSerializer(many=False, read_only=True)
 
 
 class TicketSeatsSerializer(TicketSerializer):
