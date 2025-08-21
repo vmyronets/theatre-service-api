@@ -199,7 +199,7 @@ class PerformanceViewSet(viewsets.ModelViewSet):
                 "date",
                 type=OpenApiTypes.DATE,
                 description=(
-                    "Filter by datetime of Performance show time"
+                    "Filter by datetime of Performance show time "
                     "(ex. ?date=2025-08-22)"
                 ),
             ),
