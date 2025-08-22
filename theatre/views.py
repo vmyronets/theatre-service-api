@@ -72,7 +72,7 @@ class PlayViewSet(
     mixins.RetrieveModelMixin,
     GenericViewSet
 ):
-    queryset = Play.objects.prefetch_related("genre", "actors")
+    queryset = Play.objects.prefetch_related("genres", "actors")
     serializer_class = PlaySerializer
     permission_classes = (IsAdminOrIfAuthenticatedReadOnly,)
 

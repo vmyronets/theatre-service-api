@@ -52,7 +52,7 @@ def play_image_file_path(instance, filename):
 class Play(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField(null=True, blank=True)
-    genre = models.ManyToManyField(Genre, related_name="plays", blank=True)
+    genres = models.ManyToManyField(Genre, related_name="plays", blank=True)
     actors = models.ManyToManyField(Actor, related_name="plays", blank=True)
     image = models.ImageField(null=True, upload_to=play_image_file_path)
 

@@ -1,10 +1,12 @@
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
 from rest_framework.test import APIClient
 from rest_framework import status
 
-from theatre.models import Play, TheatreHall, Performance
+from theatre.models import Play, TheatreHall, Performance, Genre, Actor
+from theatre.serializers import PlayListSerializer
 
 PLAY_URL = reverse("theatre:play-list")
 PERFORMANCE_URL = reverse("theatre:performance-list")
@@ -51,6 +53,7 @@ def detail_url(play_id):
 class UnauthenticatedPlayApiTests(TestCase):
     """Test unauthenticated play API access"""
     def setUp(self):
+        """Create a client and don't authenticate"""
         self.client = APIClient()
 
     def test_required_auth(self):
@@ -58,3 +61,90 @@ class UnauthenticatedPlayApiTests(TestCase):
         res = self.client.get(PLAY_URL)
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
+
+class AuthenticatedPlayApiTests(TestCase):
+    def setUp(self):
+        """Create and authenticate a new user"""
+        self.client = APIClient()
+        self.user = get_user_model().objects.create_user(
+            "test@user.com",
+            "testpass"
+        )
+        self.client.force_authenticate(self.user)
+
+    def test_list_plays(self):
+        """Test retrieving a list of plays"""
+        sample_play()
+        sample_play()
+
+        res = self.client.get(PLAY_URL)
+
+        plays = Play.objects.order_by("id")
+        serializer = PlayListSerializer(plays, many=True)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data, serializer.data)
+
+    def test_filter_plays_by_genres(self):
+        """Test retrieving plays by genre"""
+        genre1 = Genre.objects.create(name="Genre 1")
+        genre2 = Genre.objects.create(name="Genre 2")
+
+        play1 = sample_play(title="Play 1")
+        play2 = sample_play(title="Play 2")
+
+        play1.genres.add(genre1)
+        play2.genres.add(genre2)
+
+        play3 = sample_play(title="Play without genres")
+
+        res = self.client.get(
+            PLAY_URL, {"genres": f"{genre1.id},{genre2.id}"}
+        )
+        serializer1 = PlayListSerializer(play1)
+        serializer2 = PlayListSerializer(play2)
+        serializer3 = PlayListSerializer(play3)
+
+        self.assertIn(serializer1.data, res.data)
+        self.assertIn(serializer2.data, res.data)
+        self.assertNotIn(serializer3.data, res.data)
+
+    def test_filter_plays_by_actors(self):
+        """Test retrieving plays by actor"""
+        actor1 = Actor.objects.create(first_name="Actor 1", last_name="Last 1")
+        actor2 = Actor.objects.create(first_name="Actor 2", last_name="Last 2")
+
+        play1 = sample_play(title="Play 1")
+        play2 = sample_play(title="Play 2")
+
+        play1.actors.add(actor1)
+        play2.actors.add(actor2)
+
+        play3 = sample_play(title="Play without actors")
+
+        res = self.client.get(
+            PLAY_URL, {"actors": f"{actor1.id},{actor2.id}"}
+        )
+        serializer1 = PlayListSerializer(play1)
+        serializer2 = PlayListSerializer(play2)
+        serializer3 = PlayListSerializer(play3)
+
+        self.assertIn(serializer1.data, res.data)
+        self.assertIn(serializer2.data, res.data)
+        self.assertNotIn(serializer3.data, res.data)
+
+    def test_filter_plays_by_title(self):
+        """Test retrieving plays by title"""
+        play1 = sample_play(title="Play")
+        play2 = sample_play(title="Another Play")
+        play3 = sample_play(title="No match")
+
+        res = self.client.get(PLAY_URL, {"title": "play"})
+
+        serializer1 = PlayListSerializer(play1)
+        serializer2 = PlayListSerializer(play2)
+        serializer3 = PlayListSerializer(play3)
+
+        self.assertIn(serializer1.data, res.data)
+        self.assertIn(serializer2.data, res.data)
+        self.assertNotIn(serializer3.data, res.data)
