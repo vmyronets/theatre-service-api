@@ -6,7 +6,7 @@ from rest_framework.test import APIClient
 from rest_framework import status
 
 from theatre.models import Play, TheatreHall, Performance, Genre, Actor
-from theatre.serializers import PlayListSerializer
+from theatre.serializers import PlayListSerializer, PlayDetailSerializer
 
 PLAY_URL = reverse("theatre:play-list")
 PERFORMANCE_URL = reverse("theatre:performance-list")
@@ -148,3 +148,27 @@ class AuthenticatedPlayApiTests(TestCase):
         self.assertIn(serializer1.data, res.data)
         self.assertIn(serializer2.data, res.data)
         self.assertNotIn(serializer3.data, res.data)
+
+    def test_retrieve_play_detail(self):
+        """Test retrieving a play detail"""
+        play = sample_play()
+        play.genres.add(Genre.objects.create(name="Genre"))
+        play.actors.add(Actor.objects.create(
+            first_name="Actor", last_name="Last")
+        )
+        url = detail_url(play.id)
+        res = self.client.get(url)
+
+        serializer = PlayDetailSerializer(play)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data, serializer.data)
+
+    def test_create_play_forbidden(self):
+        """Test creating a play is forbidden for unauthorized user"""
+        payload = {
+            "title": "Test play",
+            "description": "Test play description"
+        }
+        res = self.client.post(PLAY_URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
