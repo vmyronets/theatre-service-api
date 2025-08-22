@@ -1,6 +1,9 @@
 from django.test import TestCase
 from django.urls import reverse
 
+from rest_framework.test import APIClient
+from rest_framework import status
+
 from theatre.models import Play, TheatreHall, Performance
 
 PLAY_URL = reverse("theatre:play-list")
@@ -44,4 +47,14 @@ def detail_url(play_id):
     """Return play detail URL"""
     return reverse("theatre:play-detail", args=[play_id])
 
+
+class UnauthenticatedPlayApiTests(TestCase):
+    """Test unauthenticated play API access"""
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_required_auth(self):
+        """Test the authenticaiton is required"""
+        res = self.client.get(PLAY_URL)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
