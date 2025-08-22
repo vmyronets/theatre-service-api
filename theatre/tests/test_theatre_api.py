@@ -172,3 +172,26 @@ class AuthenticatedPlayApiTests(TestCase):
         res = self.client.post(PLAY_URL, payload)
 
         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class AdminPlayApiTests(TestCase):
+    def setUp(self) -> None:
+        """Create and authenticate a new admin user"""
+        self.client = APIClient()
+        self.user = get_user_model().objects.create_user(
+            "admin@admin.com", "testpass", is_staff=True
+        )
+        self.client.force_authenticate(self.user)
+
+    def test_create_play(self):
+        payload = {
+            "title": "Test play",
+            "description": "Test play description"
+        }
+        res = self.client.post(PLAY_URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        play = Play.objects.get(id=res.data["id"])
+        for key in payload.keys():
+            self.assertEqual(payload[key], getattr(play, key))
+
