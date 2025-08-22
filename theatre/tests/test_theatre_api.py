@@ -184,6 +184,7 @@ class AdminPlayApiTests(TestCase):
         self.client.force_authenticate(self.user)
 
     def test_create_play(self):
+        """Test creating a play is successful for the admin user"""
         payload = {
             "title": "Test play",
             "description": "Test play description"
@@ -195,3 +196,38 @@ class AdminPlayApiTests(TestCase):
         for key in payload.keys():
             self.assertEqual(payload[key], getattr(play, key))
 
+    def test_create_play_with_genres(self):
+        """Test creating a play with genres is successful for the admin user"""
+        genre1 = Genre.objects.create(name="Drama")
+        genre2 = Genre.objects.create(name="Comedy")
+        payload = {
+            "title": "Test play",
+            "description": "Test play description",
+            "genres": [genre1.id, genre2.id]
+        }
+        res = self.client.post(PLAY_URL, payload)
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+
+        play = Play.objects.get(id=res.data["id"])
+        genres = play.genres.all()
+        self.assertEqual(genres.count(), 2)
+        self.assertIn(genre1, genres)
+        self.assertIn(genre2, genres)
+
+    def test_create_play_with_actors(self):
+        """Test creating a play with actors is successful for the admin user"""
+        actor1 = Actor.objects.create(first_name="Actor", last_name="Last")
+        actor2 = Actor.objects.create(first_name="Actor2", last_name="Last2")
+        payload = {
+            "title": "Test play",
+            "description": "Test play description",
+            "actors": [actor1.id, actor2.id]
+        }
+        res = self.client.post(PLAY_URL, payload)
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+
+        play = Play.objects.get(id=res.data["id"])
+        actors = play.actors.all()
+        self.assertEqual(actors.count(), 2)
+        self.assertIn(actor1, actors)
+        self.assertIn(actor2, actors)
