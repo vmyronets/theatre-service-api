@@ -34,7 +34,7 @@ class TheatreHallSerializer(serializers.ModelSerializer):
 class PlaySerializer(serializers.ModelSerializer):
     class Meta:
         model = Play
-        fields = ("id", "title", "description", "genre", "actors")
+        fields = ("id", "title", "description", "genres", "actors")
 
 
 class PlayListSerializer(PlaySerializer):
@@ -60,7 +60,7 @@ class PlayDetailSerializer(PlaySerializer):
 
     class Meta:
         model = Play
-        fields = ("id", "title", "description", "genre", "actors", "image")
+        fields = ("id", "title", "description", "genres", "actors", "image")
 
 
 class PlayImageSerializer(serializers.ModelSerializer):
