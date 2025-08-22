@@ -149,4 +149,4 @@ class Ticket(models.Model):
         ordering = ["row", "seat"]
 
     def __str__(self):
-        return f"{self.performance} Row {self.row}, Seat {self.seat}"
+        return f"{self.performance} Row: {self.row}, Seat: {self.seat}"
