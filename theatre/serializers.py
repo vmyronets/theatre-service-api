@@ -55,7 +55,7 @@ class PlayListSerializer(PlaySerializer):
 
 
 class PlayDetailSerializer(PlaySerializer):
-    genre = GenreSerializer(many=True, read_only=True)
+    genres = GenreSerializer(many=True, read_only=True)
     actors = ActorSerializer(many=True, read_only=True)
 
     class Meta:
