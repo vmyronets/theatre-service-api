@@ -1,3 +1,7 @@
+import tempfile
+import os
+
+from PIL import Image
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -8,8 +12,8 @@ from rest_framework import status
 from theatre.models import Play, TheatreHall, Performance, Genre, Actor
 from theatre.serializers import PlayListSerializer, PlayDetailSerializer
 
-PLAY_URL = reverse("theatre:play-list")
-PERFORMANCE_URL = reverse("theatre:performance-list")
+PLAY_URL = reverse("theatre:play-list")  # /api/plays/
+PERFORMANCE_URL = reverse("theatre:performance-list")  # /api/performances/
 
 
 def sample_play(**params):
@@ -51,18 +55,21 @@ def detail_url(play_id):
 
 
 class UnauthenticatedPlayApiTests(TestCase):
-    """Test unauthenticated play API access"""
+    """Test unauthenticated play API access."""
+
     def setUp(self):
-        """Create a client and don't authenticate"""
+        """Create a client and don't authenticate."""
         self.client = APIClient()
 
     def test_required_auth(self):
-        """Test the authenticaiton is required"""
+        """Test the authenticaiton is required."""
         res = self.client.get(PLAY_URL)
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
 class AuthenticatedPlayApiTests(TestCase):
+    """Test authenticated play API access."""
+
     def setUp(self):
         """Create and authenticate a new user"""
         self.client = APIClient()
@@ -73,7 +80,7 @@ class AuthenticatedPlayApiTests(TestCase):
         self.client.force_authenticate(self.user)
 
     def test_list_plays(self):
-        """Test retrieving a list of plays"""
+        """Test retrieving a list of plays."""
         sample_play()
         sample_play()
 
@@ -86,7 +93,7 @@ class AuthenticatedPlayApiTests(TestCase):
         self.assertEqual(res.data, serializer.data)
 
     def test_filter_plays_by_genres(self):
-        """Test retrieving plays by genre"""
+        """Test retrieving plays by genre."""
         genre1 = Genre.objects.create(name="Genre 1")
         genre2 = Genre.objects.create(name="Genre 2")
 
@@ -110,7 +117,7 @@ class AuthenticatedPlayApiTests(TestCase):
         self.assertNotIn(serializer3.data, res.data)
 
     def test_filter_plays_by_actors(self):
-        """Test retrieving plays by actor"""
+        """Test retrieving plays by actor."""
         actor1 = Actor.objects.create(first_name="Actor 1", last_name="Last 1")
         actor2 = Actor.objects.create(first_name="Actor 2", last_name="Last 2")
 
@@ -134,7 +141,7 @@ class AuthenticatedPlayApiTests(TestCase):
         self.assertNotIn(serializer3.data, res.data)
 
     def test_filter_plays_by_title(self):
-        """Test retrieving plays by title"""
+        """Test retrieving plays by title."""
         play1 = sample_play(title="Play")
         play2 = sample_play(title="Another Play")
         play3 = sample_play(title="No match")
@@ -164,7 +171,7 @@ class AuthenticatedPlayApiTests(TestCase):
         self.assertEqual(res.data, serializer.data)
 
     def test_create_play_forbidden(self):
-        """Test creating a play is forbidden for unauthorized user"""
+        """Test creating a play is forbidden for unauthorized user."""
         payload = {
             "title": "Test play",
             "description": "Test play description"
@@ -176,7 +183,7 @@ class AuthenticatedPlayApiTests(TestCase):
 
 class AdminPlayApiTests(TestCase):
     def setUp(self) -> None:
-        """Create and authenticate a new admin user"""
+        """Create and authenticate a new admin user."""
         self.client = APIClient()
         self.user = get_user_model().objects.create_user(
             "admin@admin.com", "testpass", is_staff=True
@@ -184,7 +191,7 @@ class AdminPlayApiTests(TestCase):
         self.client.force_authenticate(self.user)
 
     def test_create_play(self):
-        """Test creating a play is successful for the admin user"""
+        """Test creating a play is successful for the admin user."""
         payload = {
             "title": "Test play",
             "description": "Test play description"
@@ -231,3 +238,122 @@ class AdminPlayApiTests(TestCase):
         self.assertEqual(actors.count(), 2)
         self.assertIn(actor1, actors)
         self.assertIn(actor2, actors)
+
+
+class PlayImageUploadTests(TestCase):
+    """Test the play image upload feature."""
+
+    def setUp(self):
+        """Create and authenticate a new admin user."""
+        self.client = APIClient()
+        self.user = get_user_model().objects.create_superuser(
+            "admin@superuser.com", "testpass"
+        )
+        self.client.force_authenticate(self.user)
+        self.play = sample_play()
+        self.performance = sample_performance(play=self.play)
+
+    def tearDown(self):
+        """Delete the play image file after each test."""
+        self.play.image.delete()
+
+    def test_upload_image_to_play(self):
+        """Test uploading an image to play successfully."""
+        url = image_upload_url(self.play.id)
+        with tempfile.NamedTemporaryFile(suffix=".jpg") as ntf:
+            img = Image.new("RGB", (10, 10))
+            img.save(ntf, format="JPEG")
+            ntf.seek(0)
+            res = self.client.post(
+                url, {"image": ntf}, format="multipart"
+            )
+        self.play.refresh_from_db()
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn("image", res.data)
+        self.assertTrue(os.path.exists(self.play.image.path))
+
+    def test_upload_image_bad_request(self):
+        """Test uploading an invalid image fails."""
+        url = image_upload_url(self.play.id)
+        res = self.client.post(
+            url, {"image": "notimage"}, format="multipart"
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_post_image_to_play_list_should_not_work(self):
+        """Test uploading an image to play list should not work."""
+        url = PLAY_URL
+        with tempfile.NamedTemporaryFile(suffix=".jpg") as ntf:
+            img = Image.new("RGB", (10, 10))
+            img.save(ntf, format="JPEG")
+            ntf.seek(0)
+            res = self.client.post(
+                url,
+                {
+                    "title": "Test play title",
+                    "description": "Test play description",
+                    "image": ntf
+                },
+                format="multipart"
+            )
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        play = Play.objects.get(title="Test play title")
+        self.assertFalse(play.image)
+
+    def test_image_url_is_shown_on_play_detail(self):
+        """Test that the image url is shown on the play detail view."""
+        url = image_upload_url(self.play.id)
+        with tempfile.NamedTemporaryFile(suffix=".jpg") as ntf:
+            img = Image.new("RGB", (10, 10))
+            img.save(ntf, format="JPEG")
+            ntf.seek(0)
+            self.client.post(url, {"image": ntf}, format="multipart")
+        res = self.client.get(detail_url(self.play.id))
+
+        self.assertIn("image", res.data)
+
+    def test_image_url_is_shown_on_play_list(self):
+        """Test that the image url is shown on the play list."""
+        url = image_upload_url(self.play.id)
+        with tempfile.NamedTemporaryFile(suffix=".jpg") as ntf:
+            img = Image.new("RGB", (10, 10))
+            img.save(ntf, format="JPEG")
+            ntf.seek(0)
+            self.client.post(url, {"image": ntf}, format="multipart")
+        res = self.client.get(PLAY_URL)
+
+        self.assertIn("image", res.data[0].keys())
+
+    def test_image_url_is_shown_on_performance_detail(self):
+        """Test that the image url is shown on the performance detail."""
+        url = image_upload_url(self.play.id)
+        with tempfile.NamedTemporaryFile(suffix=".jpg") as ntf:
+            img = Image.new("RGB", (10, 10))
+            img.save(ntf, format="JPEG")
+            ntf.seek(0)
+            self.client.post(url, {"image": ntf}, format="multipart")
+        res = self.client.get(PERFORMANCE_URL)
+
+        self.assertIn("play_image", res.data[0].keys())
+
+    def test_put_play_not_allowed(self):
+        """Test that PUT requests are not allowed in play."""
+        payload = {
+            "title": "Test play",
+            "description": "Test play description"
+        }
+        play = sample_play()
+        url = detail_url(play.id)
+        res = self.client.put(url, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def test_delete_play_not_allowed(self):
+        """Test that DELETE requests are not allowed in play."""
+        play = sample_play()
+        url = detail_url(play.id)
+        res = self.client.delete(url)
+
+        self.assertEqual(res.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
