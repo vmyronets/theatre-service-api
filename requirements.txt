@@ -8,6 +8,8 @@ inflection==0.5.1
 jsonschema==4.25.1
 jsonschema-specifications==2025.4.1
 pillow==11.3.0
+psycopg==3.2.9
+psycopg-binary==3.2.9
 PyJWT==2.10.1
 PyYAML==6.0.2
 referencing==0.36.2
