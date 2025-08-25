@@ -2,7 +2,7 @@ FROM python:3.12-alpine
 LABEL maintainer="volodymyrmyronets@gmail.com"
 
 ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONDONTWRITEBYTECODE=1
 
 WORKDIR app/
 
