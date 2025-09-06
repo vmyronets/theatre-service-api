@@ -5,7 +5,7 @@ from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
-    """Django command to pause execution until database is available."""
+    """Django command to pause execution until a database is available."""
 
     def handle(self, *args, **options):
         """Handle the command by checking database connection."""
@@ -21,6 +21,8 @@ class Command(BaseCommand):
                 attempts += 1
                 time.sleep(1)
                 if attempts > 45:
-                    self.stdout.write(self.style.ERROR("Database unavailable."))
+                    self.stdout.write(
+                        self.style.ERROR("Database unavailable.")
+                    )
                     break
         self.stdout.write(self.style.SUCCESS("Database available!"))

@@ -2,7 +2,7 @@
 # Theater Service API
 
 This is an API service for managing theater operations, built with **Django** and **Django REST Framework (DRF)**.
-It provides functionality for managing plays, actors, genres, theatre halls, performances, and ticket reservations.
+It provides functionality for managing plays, actors, genres, theater halls, performances, and ticket reservations.
 
 -----
 
@@ -20,15 +20,14 @@ It provides functionality for managing plays, actors, genres, theatre halls, per
 
 ## 🚀 Getting Started
 
-To get the project running on your local machine, you can either use Docker (recommended) or set up the environment manually.
+To get the project running on your local machine, you should use Docker.
 
 ### Prerequisites
 
   * Python 3.8+
-  * PostgreSQL
-  * Docker and Docker Compose (for the Docker-based setup)
+  * Docker and Docker Compose
 
-### 🐳 Installing with Docker (Recommended)
+### 🐳 Installing with Docker
 
 This is the simplest way to get the project up and running.
 
@@ -36,48 +35,14 @@ This is the simplest way to get the project up and running.
 
     ```bash
     git clone https://github.com/<your-username>/theatre-service-api.git
+    ```
+2.  **Go to the project directory:**
+
+    ```bash
     cd theatre-service-api
     ```
 
-2.  **Build and run the containers:**
-
-    ```bash
-    docker-compose build
-    docker-compose up
-    ```
-
-    The service will be available at `http://localhost:8000`.
-
-3.  **Apply migrations and load initial data (in a new terminal):**
-
-    ```bash
-    docker-compose exec theatre python manage.py migrate
-    docker-compose exec theatre python manage.py loaddata theatre_db_data.json
-    ```
-
-### 💻 Manual Setup
-
-1.  **Clone the repository:**
-
-    ```bash
-    git clone https://github.com/<your-username>/theatre-service-api.git
-    cd theatre-service-api
-    ```
-
-2.  **Create and activate a virtual environment:**
-
-    ```bash
-    python -m venv venv
-    source venv/bin/activate  # On Windows, use: venv\Scripts\activate
-    ```
-
-3.  **Install dependencies:**
-
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-4.  **Configure Environment Variables:**
+3.  **Configure Environment Variables:**
     Rename the sample environment file and then fill in your credentials.
 
     ```bash
@@ -86,53 +51,57 @@ This is the simplest way to get the project up and running.
 
     Now, open the `.env` file and set the correct values for your database connection and secret key.
 
-5.  **Apply migrations and load initial data:**
-
+4.  **Run the command to start the project:**
     ```bash
-    python manage.py migrate
-    python manage.py loaddata theatre_db_data.json
+    docker-compose up -build
     ```
 
-6.  **Run the development server:**
+5.  **Load initial data (in a new terminal):**
 
     ```bash
-    python manage.py runserver
+    docker-compose exec theatre python manage.py loaddata theatre_db_data.json
     ```
 
 -----
 
+
 ## 🔑 API Usage
 
-Access to most endpoints requires JWT authentication.
-To send a request with an access token in the header, you can use Postman or use the following commands:
+Access to most endpoints requires **JWT authentication**.
 
-### 1\. Register a New User
+The easiest and most convenient way to test and explore the API is by using the interactive **Swagger UI** documentation.
+Alternatively, you can use **Postman** or any other HTTP client.
 
-Create a new user by sending a `POST` request to `api/user/register/`.
+### 🚀 Recommended Method: Swagger UI
 
-```bash
-curl -X POST http://localhost:8000/api/user/register/ \
--H "Content-Type: application/json" \
--d '{
-    "email": "user@example.com",
-    "password": "YourStrongPassword123"
-}'
-```
+After starting the server, navigate to the interactive documentation:
 
-### 2\. Obtain a Token
+**`http://127.0.0.1:8000/api/doc/swagger/`**
 
-After registration, get your `access` and `refresh` tokens by sending your credentials to `api/user/token/`.
+To get started, follow these steps:
 
-```bash
-curl -X POST http://localhost:8000/api/user/token/ \
--H "Content-Type: application/json" \
--d '{
-    "email": "user@example.com",
-    "password": "YourStrongPassword123"
-}'
-```
+#### 1\. Obtain User Credentials
 
-In response, you will receive:
+You have two options:
+
+  * **Create a new user:**
+    Send a `POST` request to the `/api/user/register/` endpoint with your details.
+
+  * **Use a preloaded user:**
+    During migrations and data loading (`loaddata`), test users were created. You can use one of them:
+
+      * **Regular user:**
+          * **Email:** `user@user.com`
+          * **Password:** `1qazcde3`
+      * **Administrator:**
+          * **Email:** `admin@admin.com`
+          * **Password:** `1qazcde3`
+
+#### 2\. Get an Access Token
+
+In the Swagger UI, find the `POST /api/user/token/` endpoint.
+Enter the email and password for the user you chose in the previous step and execute the request. 
+In the response, you will receive `access` and `refresh` tokens:
 
 ```json
 {
@@ -141,26 +110,38 @@ In response, you will receive:
 }
 ```
 
-### 3\. Accessing Protected Routes
+Copy the value of the `"access"` key.
 
-Use the received `access` token by passing it in the `Authorization` header of every request.
+#### 3\. Authorize in Swagger
+
+1.  Click the **`Authorize`** button in the top right corner of the Swagger page.
+2.  In the modal window that appears, paste your `access` token into the **`Value`** field for the `jwtAuth (http, Bearer)` scheme.
+3.  Click **`Authorize`** and close the window.
+
+You are now authenticated and can send requests to protected endpoints.
+
+-----
+
+### 🛠️ Alternative Method: Postman
+
+1.  Obtain an `access` token by sending a `POST` request to `http://127.0.0.1:8000/api/user/token/` with your credentials.
+2.  For every request to a protected endpoint, add the following header:
+      * **Key:** `Authorization`
+      * **Value:** `Bearer <your_access_token>`
+
+-----
+
+Example request using `curl`:
 
 ```bash
-curl -X GET http://localhost:8000/api/theatre/plays/ \
--H "Authorization: Bearer <your_access_token>"
+curl -X GET http://127.0.0.1:8000/api/theatre/plays/ -H "Authorization: Bearer <your_access_token>"
 ```
 
 -----
 
-## 📚 API Documentation
+### ⚙️ Request Throttling
 
-Complete and interactive API documentation (Swagger UI) is available after starting the server at:
+The API has rate limits to prevent abuse:
 
-**`http://localhost:8000/api/doc/swagger/`**
-
-## 👤 Admin Panel
-
-To access the admin panel, navigate to **`/admin/`**. You can use the superuser credentials loaded from the initial data file:
-
-  * **Email:** `admin@admin.com`
-  * **Password:** `1qazcde3`
+  * **Authenticated users:** **100** requests per day.
+  * **Unauthenticated users:** **20** requests per day.
